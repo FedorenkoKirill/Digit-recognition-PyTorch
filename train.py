@@ -1,5 +1,4 @@
 import torchvision as tv
-import torchvision.transforms as transforms
 
 import torch
 import torch.nn as nn
@@ -7,24 +6,30 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
-from model import Net
+from model import Net, make_transform
 
 if __name__ == '__main__':
-    # Определить предварительную обработку данных
-    transform = transforms.Compose([
-        transforms.ToTensor(),  # Преобразовать в тензор и нормализовать до [0, 1]
-    ])
-
+    batch_size = 4
+    max_epoch = 5
     # Учебный комплект
-    trainset = tv.datasets.MNIST(
+    train_set = tv.datasets.MNIST(
         root='data/',
         train=True,
         download=True,
-        transform=transform
+        transform=make_transform()
     )
-    trainloader = DataLoader(
-        dataset=trainset,
-        batch_size=64,
+
+    train_set, validation_set = torch.utils.data.random_split(train_set, [int(0.8*len(train_set)), int(0.2*len(train_set))])
+
+    train_loader = DataLoader(
+        dataset=train_set,
+        batch_size=batch_size,
+        shuffle=True
+    )
+
+    validation_loader = DataLoader(
+        dataset=validation_set,
+        batch_size=batch_size,
         shuffle=True
     )
 
@@ -33,31 +38,33 @@ if __name__ == '__main__':
                '5', '6', '7', '8', '9')
 
     # Создать модель сети
-    net = Net()
+    model = Net()
 
     if torch.cuda.is_available():
         # Используйте GPU
-        net.cuda()
+        model.cuda()
 
     # Определить функцию потерь и оптимизатор
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.005, momentum=0.9)
+    optimizer = optim.SGD(model.parameters(), lr=0.005, momentum=0.9)
 
-    for epoch in range(5):
+    min_valid_loss = float("inf")
+    for epoch in range(max_epoch):
         running_loss = 0.0
-        for i, data in enumerate(trainloader):
+        train_loss = 0.0
+        for i, data in enumerate(train_loader):
             # Введите данные
             inputs, labels = data
             if torch.cuda.is_available():
-                inputs = inputs.cuda()
-                labels = labels.cuda()
+                inputs, labels = inputs.cuda(), labels.cuda()
+
             inputs, labels = Variable(inputs), Variable(labels)
 
             # Градиент очистить 0
             optimizer.zero_grad()
 
             # forward + backward
-            outputs = net(inputs)
+            outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
 
@@ -66,16 +73,43 @@ if __name__ == '__main__':
 
             # Распечатать информацию журнала
             running_loss += loss.item()
+            train_loss += loss.item() * len(data)
 
             # Печать статуса тренировки каждые 2000 партий
-            if i % 100 == 99:
+            if i % 1000 == 999:
                 print(
-                    '[{}/{}][{}/{}] loss: {:.3f}'.format(epoch + 1, 5, (i + 1) * 4, len(trainset), running_loss / 100))
+                    f'[{epoch + 1}/{max_epoch}][{(i + 1) * batch_size}/{len(train_set)}] '
+                    f'loss: {round(running_loss / 1000, 6)}')
                 running_loss = 0.0
 
-    # Сохранить файл параметров
-    torch.save(net.state_dict(), 'model_{}.pth'.format(epoch + 1))
-    print('model_{}.pth saved'.format(epoch + 1))
+        valid_loss = 0.0
+        model.eval()  # Optional when not using Model Specific layer
+        for data, labels in validation_loader:
+            # Transfer Data to GPU if available
+            if torch.cuda.is_available():
+                data, labels = data.cuda(), labels.cuda()
 
+            # Forward Pass
+            outputs = model(data)
+            # Find the Loss
+            loss = criterion(outputs, labels)
+            # Calculate Loss
+            valid_loss += loss.item() * len(data)
+
+        mean_train_loss = train_loss / len(train_loader)
+        mean_valid_loss = valid_loss / len(validation_loader)
+        print(f'############################################\n'
+              f'Epoch {epoch + 1} \t\t '
+              f'Training Loss: {mean_train_loss} \t\t '
+              f'Validation Loss: {mean_valid_loss}\n'
+              f'############################################')
+
+        if min_valid_loss > mean_valid_loss:
+            print(f'Validation Loss Decreased({round(min_valid_loss, 6)}--->{round(mean_valid_loss, 6)}) '
+                  f'\nSaving The Model\n'
+                  f'############################################')
+            min_valid_loss = mean_valid_loss
+
+            # Saving State Dict
+            torch.save(model.state_dict(), 'model.pth')
     print('Finished Training')
-

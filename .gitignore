@@ -1,2 +1,3 @@
 data/
-model_5.pth
+model.pth
+example.py

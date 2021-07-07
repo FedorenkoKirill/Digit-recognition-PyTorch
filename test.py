@@ -1,30 +1,25 @@
 import torchvision as tv
-import torchvision.transforms as transforms
 
 import torch
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
-from model import Net
+from model import Net, make_transform
 
 
 def get_dataset():
-    # Предварительная обработка данных
-    transform = transforms.Compose([
-        transforms.ToTensor()
-    ])
 
     # Тестовый набор
     testset = tv.datasets.MNIST(
         root='data/',
         train=False,
         download=False,
-        transform=transform,
+        transform=make_transform(),
     )
     testloadter = DataLoader(
         dataset=testset,
         batch_size=4,
-        shuffle=True,
+        shuffle=False,
     )
 
     return len(testset), testloadter
@@ -38,7 +33,7 @@ def main():
     model = Net()
 
     # Загрузить модель
-    model.load_state_dict(torch.load('model_5.pth'))
+    model.load_state_dict(torch.load('model.pth'))
 
     if torch.cuda.is_available():
         # Используйте GPU
