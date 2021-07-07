@@ -6,7 +6,8 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
-from model import Net, make_transform
+from model import Net
+from transforms import make_transform
 
 if __name__ == '__main__':
     batch_size = 4

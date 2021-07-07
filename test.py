@@ -4,7 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 
-from model import Net, make_transform
+from model import Net
+from transforms import make_transform
 
 
 def get_dataset():
