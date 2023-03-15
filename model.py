@@ -6,14 +6,14 @@ class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
 
-        # Сверточный слой
+        # Convolutional layer
         # i --> input channels
         # 6 --> output channels
         # 5 --> kernel size
         self.conv1 = nn.Conv2d(1, 6, 5)
         self.conv2 = nn.Conv2d(6, 16, 5)
 
-        # Полностью связанный слой
+        # Fully connected layer
         # 16 * 4 * 4 --> input vector dimensions
         # 120 --> output vector dimensions
         self.fc1 = nn.Linear(16 * 4 * 4, 120)
@@ -25,12 +25,11 @@ class Net(nn.Module):
         x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
         x = F.max_pool2d(F.relu(self.conv2(x)), (2, 2))
 
-        # reshape, «-1» означает адаптивный
         # x = (n * 16 * 4 * 4) --> n : input channels
         # x.size()[0] == n --> input channels
         x = x.view(x.size()[0], -1)
 
-        # Полностью связанный слой
+        # Fully connected layer
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)

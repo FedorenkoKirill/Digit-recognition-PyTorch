@@ -1,7 +1,13 @@
 import torchvision.transforms as transforms
 
-def make_transform():
-    transform = transforms.Compose([
-        transforms.ToTensor(),  # Преобразовать в тензор и нормализовать до [0, 1]
+
+def input_transform():
+    return transforms.Compose([
+        transforms.ToTensor()
     ])
-    return transform
+
+
+def get_image_by_tensor():
+    return transforms.Compose([
+        transforms.ToPILImage()
+    ])

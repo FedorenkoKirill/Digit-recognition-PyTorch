@@ -1,3 +1,5 @@
-data/
-model.pth
-example.py
+.idea
+venv
+data
+model
+tesult_test
